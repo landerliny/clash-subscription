@@ -1,13 +1,14 @@
-const { v4: uuidv4 } = require('uuid');
+function generateSimpleToken() {
+  return 'token_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
 
 module.exports = async (req, res) => {
-  // 设置CORS头部，允许前端请求
+  // 设置CORS头部
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
 
-  // 处理预检请求
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
@@ -33,11 +34,9 @@ module.exports = async (req, res) => {
     }
 
     // 生成唯一的token和计算过期时间戳
-    const token = uuidv4();
+    const token = generateSimpleToken();
     const expireTime = Date.now() + (parseInt(expireDays) * 24 * 60 * 60 * 1000);
 
-    // 在实际应用中，这里应该将 {token, userId, expireTime} 存储到数据库或文件中。
-    // 此处为演示，我们直接生成链接。
     console.log(`Generated token: ${token} for user: ${userId}, expires in: ${expireDays} days`);
 
     const subscribeUrl = `https://${req.headers.host}/api/subscribe?token=${token}&expire=${expireTime}`;
