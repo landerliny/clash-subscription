@@ -1,37 +1,38 @@
-export default async function handler(req, res) {
-  // 设置CORS头部
+// Vercel Serverless Function标准格式
+module.exports = async (req, res) => {
+  // 允许CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
+  
+  // 处理预检请求
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return res.status(200).end();
   }
-
+  
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: '只支持POST方法' });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
-
+  
   try {
     const { userId, expireDays } = req.body;
     
     if (!userId) {
-      return res.status(400).json({ error: '缺少用户ID' });
+      return res.status(400).json({ error: 'User ID is required' });
     }
-
-    console.log('收到请求:', { userId, expireDays });
-
+    
     // 生成订阅链接
-    const subscribeUrl = `${req.headers.origin}/api/subscribe?userId=${userId}&expireDays=${expireDays || 30}`;
-
+    const baseUrl = req.headers.origin || 'https://' + req.headers.host;
+    const subscribeUrl = `${baseUrl}/api/subscribe?userId=${encodeURIComponent(userId)}&expireDays=${expireDays || 30}`;
+    
     res.status(200).json({
+      success: true,
       subscribeUrl: subscribeUrl,
-      message: '链接生成成功'
+      message: 'Subscription link generated successfully'
     });
-
+    
   } catch (error) {
-    console.error('生成链接时出错:', error);
-    res.status(500).json({ error: '内部服务器错误' });
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
-}
+};
