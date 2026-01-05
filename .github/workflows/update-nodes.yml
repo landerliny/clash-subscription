@@ -1,0 +1,35 @@
+name: 自动更新 Clash 节点
+
+on:
+  schedule:
+    - cron: '0 * * * *' # 每小时的第0分钟执行一次（即每小时一次）
+  workflow_dispatch: # 允许手动触发这个工作流
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: 安装依赖
+        run: pip install requests pyyaml
+
+      - name: 创建配置目录
+        run: mkdir -p configs
+
+      - name: 运行节点更新脚本
+        run: python scripts/update_nodes.py
+
+      - name: 检查配置是否变化并提交
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add configs/
+          # 检查是否有文件变更，有则提交
+          git diff --staged --quiet || (git commit -m "自动更新节点列表 [$(date +'%Y-%m-%d %H:%M')]" && git push)
