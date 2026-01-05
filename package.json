@@ -1,0 +1,14 @@
+{
+  "name": "clash-subscription",
+  "version": "1.0.0",
+  "description": "Clash订阅链接生成器",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "uuid": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
