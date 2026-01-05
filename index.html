@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clash 订阅管理</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input, select, button { padding: 10px; width: 100%; box-sizing: border-box; }
+        button { background: #007cba; color: white; border: none; cursor: pointer; }
+        #result { margin-top: 20px; padding: 15px; background: #f5f5f5; display: none; }
+        #qrcode { margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Clash 订阅链接生成器</h1>
+    <p>请先输入管理密码：</p>
+    <div class="form-group">
+        <input type="password" id="adminPassword" placeholder="输入管理密码">
+    </div>
+    <div id="adminSection" style="display: none;">
+        <div class="form-group">
+            <label for="userId">用户标识（例如：user001）</label>
+            <input type="text" id="userId" placeholder="输入用户ID">
+        </div>
+        <div class="form-group">
+            <label for="expireDays">有效期</label>
+            <select id="expireDays">
+                <option value="30">1个月</option>
+                <option value="365">1年</option>
+                <option value="730">2年</option>
+                <option value="9999">永久</option>
+            </select>
+        </div>
+        <button onclick="generateLink()">生成订阅链接</button>
+        <div id="result">
+            <p><strong>订阅链接：</strong></p>
+            <p id="subscribeUrl"></p>
+            <button onclick="copyToClipboard()">复制链接</button>
+            <p><strong>二维码：</strong></p>
+            <div id="qrcode"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('adminPassword').addEventListener('input', function(e) {
+            // 在实际部署中，这个密码验证应由后端完成。这里是前端简单演示。
+            // 真实密码在Vercel的环境变量里，由API验证。
+            document.getElementById('adminSection').style.display = 'block';
+        });
+
+        async function generateLink() {
+            const userId = document.getElementById('userId').value;
+            const expireDays = document.getElementById('expireDays').value;
+            const password = document.getElementById('adminPassword').value;
+
+            if (!userId) {
+                alert('请输入用户ID');
+                return;
+            }
+
+            try {
+                // 调用Vercel的API生成链接
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${password}` // 简单地将密码作为Bearer Token发送
+                    },
+                    body: JSON.stringify({ userId, expireDays })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('subscribeUrl').innerText = data.subscribeUrl;
+                    document.getElementById('result').style.display = 'block';
+
+                    // 生成二维码
+                    document.getElementById('qrcode').innerHTML = '';
+                    QRCode.toCanvas(document.getElementById('qrcode'), data.subscribeUrl, function (error) {
+                        if (error) console.error(error);
+                    });
+                } else {
+                    alert('生成失败: ' + data.error);
+                }
+            } catch (error) {
+                alert('网络错误，请重试');
+                console.error(error);
+            }
+        }
+
+        function copyToClipboard() {
+            const urlText = document.getElementById('subscribeUrl').innerText;
+            navigator.clipboard.writeText(urlText).then(function() {
+                alert('链接已复制到剪贴板！');
+            });
+        }
+    </script>
+</body>
+</html>
