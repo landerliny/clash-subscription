@@ -1,4 +1,4 @@
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   // 设置CORS头部
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
@@ -22,16 +22,16 @@ module.exports = async (req, res) => {
 
     console.log('收到请求:', { userId, expireDays });
 
-    // 生成简单的订阅链接（暂时返回固定内容）
-    const subscribeUrl = `https://${req.headers.host}/api/subscribe?token=test_${Date.now()}&expire=${Date.now() + 30*24*60*60*1000}`;
+    // 生成订阅链接
+    const subscribeUrl = `${req.headers.origin}/api/subscribe?userId=${userId}&expireDays=${expireDays || 30}`;
 
     res.status(200).json({
       subscribeUrl: subscribeUrl,
-      message: '链接生成成功（测试版）'
+      message: '链接生成成功'
     });
 
   } catch (error) {
     console.error('生成链接时出错:', error);
     res.status(500).json({ error: '内部服务器错误' });
   }
-};
+}
