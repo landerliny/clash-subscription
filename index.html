@@ -9,25 +9,31 @@
         body { font-family: sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; }
-        input, select, button { padding: 10px; width: 100%; box-sizing: border-box; }
+        input, select, button { padding: 10px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
         button { background: #007cba; color: white; border: none; cursor: pointer; }
         #result { margin-top: 20px; padding: 15px; background: #f5f5f5; display: none; }
         #qrcode { margin-top: 10px; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
     <h1>Clash 订阅链接生成器</h1>
-    <p>请先输入管理密码：</p>
-    <div class="form-group">
-    <input type="password" id="adminPassword" placeholder="输入管理密码">
-    <button onclick="verifyPassword()" style="margin-top: 10px;">验证密码</button>
-</div>
-    <div id="adminSection" style="display: none;">
-        <div class="form-group">
+    
+    <div id="loginSection">
+        <h3>管理员登录</h3>
+        <div class="formgroup">
+            <input type="password" id="adminPassword" placeholder="输入管理密码">
+            <button onclick="verifyPassword()">验证密码</button>
+        </div>
+    </div>
+
+    <div id="adminSection" class="hidden">
+        <h3>生成订阅链接</h3>
+        <div class="formgroup">
             <label for="userId">用户标识（例如：user001）</label>
             <input type="text" id="userId" placeholder="输入用户ID">
         </div>
-        <div class="form-group">
+        <div class="formgroup">
             <label for="expireDays">有效期</label>
             <select id="expireDays">
                 <option value="30">1个月</option>
@@ -37,7 +43,8 @@
             </select>
         </div>
         <button onclick="generateLink()">生成订阅链接</button>
-        <div id="result">
+        
+        <div id="result" class="hidden">
             <p><strong>订阅链接：</strong></p>
             <p id="subscribeUrl"></p>
             <button onclick="copyToClipboard()">复制链接</button>
@@ -47,31 +54,16 @@
     </div>
 
     <script>
-        document.getElementById('adminPassword').addEventListener('input', function(e) {
-    // 先隐藏管理区域
-    document.getElementById('adminSection').style.display = 'none';
-    document.getElementById('result').style.display = 'none';
-});
-
-// 添加提交按钮
-document.getElementById('adminPassword').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        verifyPassword();
-    }
-});
-
-async function verifyPassword() {
-    const password = document.getElementById('adminPassword').value;
-    if (!password) {
-        alert('请输入密码');
-        return;
-    }
-    
-    // 这里可以添加一个简单的API调用来验证密码
-    // 暂时先直接显示（实际部署时应该由后端验证）
-    document.getElementById('adminSection').style.display = 'block';
-}
-
+        function verifyPassword() {
+            const password = document.getElementById('adminPassword').value;
+            if (!password) {
+                alert('请输入密码');
+                return;
+            }
+            // 简单的前端验证，实际应由后端验证
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('adminSection').classList.remove('hidden');
+        }
 
         async function generateLink() {
             const userId = document.getElementById('userId').value;
@@ -83,34 +75,40 @@ async function verifyPassword() {
                 return;
             }
 
+            console.log('开始API调用...');
+
             try {
-                // 调用Vercel的API生成链接
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${password}` // 简单地将密码作为Bearer Token发送
+                        'Authorization': 'Bearer ' + password
                     },
-                    body: JSON.stringify({ userId, expireDays })
+                    body: JSON.stringify({ 
+                        userId: userId, 
+                        expireDays: parseInt(expireDays) 
+                    })
                 });
 
-                const data = await response.json();
-
-                if (response.ok) {
-                    document.getElementById('subscribeUrl').innerText = data.subscribeUrl;
-                    document.getElementById('result').style.display = 'block';
-
-                    // 生成二维码
-                    document.getElementById('qrcode').innerHTML = '';
-                    QRCode.toCanvas(document.getElementById('qrcode'), data.subscribeUrl, function (error) {
-                        if (error) console.error(error);
-                    });
-                } else {
-                    alert('生成失败: ' + data.error);
+                console.log('响应状态:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP错误: ${response.status}`);
                 }
+                
+                const data = await response.json();
+                console.log('响应数据:', data);
+
+                document.getElementById('subscribeUrl').innerText = data.subscribeUrl;
+                document.getElementById('result').classList.remove('hidden');
+
+                // 生成二维码
+                document.getElementById('qrcode').innerHTML = '';
+                QRCode.toCanvas(document.getElementById('qrcode'), data.subscribeUrl);
+
             } catch (error) {
-                alert('网络错误，请重试');
-                console.error(error);
+                console.error('错误详情:', error);
+                alert('错误: ' + error.message + '。请查看控制台(F12)获取详细信息。');
             }
         }
 
